@@ -571,6 +571,7 @@
 			url_parameters: {},
 			max_file_size : '1gb',
 			multi_selection : true,
+			self_managed: false,
 			filters : [
 				{title : "Image files", extensions : "jpg,gif,png"}
 			]
@@ -578,19 +579,22 @@
 
 		// Private methods
 		function uploadNext() {
-			var file;
+			if (!this.settings.self_managed) {
+				var file;
 
-			if (this.state == plupload.STARTED && fileIndex < files.length) {
-				file = files[fileIndex++];
+				if (this.state == plupload.STARTED && fileIndex < files.length) {
+					file = files[fileIndex++];
 
-				if (file.status == plupload.QUEUED) {
-					this.trigger("UploadFile", file);
+					if (file.status == plupload.QUEUED) {
+						this.trigger("UploadFile", file);
+					} else {
+						uploadNext.call(this);
+					}
 				} else {
-					uploadNext.call(this);
+					this.stop();
 				}
-			} else {
-				this.stop();
 			}
+			
 		}
 
 		function calc() {

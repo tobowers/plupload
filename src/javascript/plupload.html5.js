@@ -274,9 +274,16 @@
 						}
 					}
 				};
-
-				xhr.open("post", plupload.buildUrl(up.settings.url, {name : file.target_name || file.name}), true);
+				
+				var url = file.url || up.settings.url;
+				
+				xhr.open("post", plupload.buildUrl(url, {name : file.target_name || file.name}), true);
 				xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+				for (var key in up.settings.request_headers) {
+					if (up.settings.request_headers.hasOwnProperty(key)) {
+						xhr.setRequestHeader(key, up.settings.request_headers[key]);
+					}
+				}
 				nativeFile = html5files[file.id]; 
 
 				if (xhr.sendAsBinary) {

@@ -567,6 +567,7 @@
 		// Default settings
 		settings = plupload.extend({
 			chunk_size : 0,
+			request_headers: {},
 			max_file_size : '1gb',
 			multi_selection : true,
 			filters : [

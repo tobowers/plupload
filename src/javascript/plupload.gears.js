@@ -204,7 +204,14 @@
 					curChunkSize = Math.min(chunkSize, file.size - (chunk  * chunkSize));
 
 					req = google.gears.factory.create('beta.httprequest');
-					req.open('POST', plupload.buildUrl(up.settings.url, reqArgs));
+					var url = file.url || up.settings.url;
+					for (var key in up.settings.request_headers) {
+						if (up.settings.request_headers.hasOwnProperty(key)) {
+							req.setRequestHeader(key, up.settings.request_headers[key]);
+						}
+					}
+					
+					req.open('POST', plupload.buildUrl(url, reqArgs));
 
 					// Add disposition and type if multipart is disabled
 					if (!multipart) {

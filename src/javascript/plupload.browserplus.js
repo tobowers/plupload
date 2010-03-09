@@ -171,9 +171,10 @@
 						}
 
 					    chunkFile = chunkStack.shift();
-
+						var url = file.url || up.settings.url;
+						
 						browserPlus.Uploader.upload({
-							url : plupload.buildUrl(up.settings.url, urlParams),
+							url : plupload.buildUrl(url, urlParams),
 							files : {file : chunkFile},
 							cookies : document.cookies,
 							postvars : up.settings.multipart_params,

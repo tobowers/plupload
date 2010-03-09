@@ -321,10 +321,11 @@
 
 				uploader.bind("UploadFile", function(up, file) {
 					var settings = up.settings, resize = settings.resize || {};
-
+					var url = file.url || up.settings.url;
+					
 					getSilverlightObj().UploadFile(
 						lookup[file.id],
-						plupload.buildUrl(up.settings.url, {name : file.target_name || file.name}),
+						plupload.buildUrl(url, {name : file.target_name || file.name}),
 						jsonSerialize({
 							chunk_size : settings.chunk_size,
 							image_width : resize.width,

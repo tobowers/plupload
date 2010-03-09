@@ -283,7 +283,9 @@
 
 				// Store action
 				form.tmpAction = form.action;
-				form.action = plupload.buildUrl(up.settings.url, {name : file.target_name || file.name});
+				var url = file.url || up.settings.url
+				var urlParams = plupload.extend({name : file.target_name || file.name}, up.settings.url_parameters);
+				form.action = plupload.buildUrl(url, urlParams);
 
 				// Store Target
 				form.tmpTarget = form.target;

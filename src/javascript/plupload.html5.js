@@ -276,8 +276,9 @@
 				};
 				
 				var url = file.url || up.settings.url;
+				var urlParams = plupload.extend({name : file.target_name || file.name}, up.settings.url_parameters);
 				
-				xhr.open("post", plupload.buildUrl(url, {name : file.target_name || file.name}), true);
+				xhr.open("post", plupload.buildUrl(url, urlParams), true);
 				xhr.setRequestHeader('Content-Type', 'application/octet-stream');
 				for (var key in up.settings.request_headers) {
 					if (up.settings.request_headers.hasOwnProperty(key)) {

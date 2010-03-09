@@ -572,6 +572,7 @@
 			max_file_size : '1gb',
 			multi_selection : true,
 			self_managed: false,
+			use_offsets: false,
 			filters : [
 				{title : "Image files", extensions : "jpg,gif,png"}
 			]

@@ -41,7 +41,7 @@ package com.plupload {
 		private var _uploadUrl:String, _uploadPath:String;
 		private var _id:String, _fileName:String, _size:uint, _imageData:ByteArray;
 		private var _multipart:Boolean, _chunking:Boolean, _chunk:int, _chunks:int, _chunkSize:int, _postvars:Object;
-		private var _requestHeaders:Array;
+		private var _requestHeaders:Array, _useOffsets:Boolean;
 
 		/**
 		 * Id property of file.
@@ -100,6 +100,7 @@ package com.plupload {
 			this._uploadUrl = url;
 			this._cancelled = false;
 			this._requestHeaders = new Array();
+			this._useOffsets = settings["use_offsets"];
 			
 			if (settings["request_headers"]) {
 				for (var key:String in settings["request_headers"]) {
@@ -123,9 +124,11 @@ package com.plupload {
 			chunks = Math.ceil(this._fileRef.size / chunkSize);
 
 			// If chunking is disabled then upload file in one huge chunk
+			// Force at least 4 chunks to fake progress
 			if (!chunking) {
-				chunkSize = this.size;
-				chunks = 1;
+				chunking = true;
+				chunkSize = Math.ceil(file._size / 4);
+				chunks = 4;
 			}
 
 			// When file is loaded start uploading
@@ -156,12 +159,6 @@ package com.plupload {
 						file._imageData.position = 0;
 						file._size = file._imageData.length;
 
-						// Force at least 4 chunks to fake progress
-						if (chunks < 4) {
-							chunkSize = Math.ceil(file._size / 4);
-							chunks = 4;
-						}
-
 						// Start uploading the scaled down image
 						file._multipart = multipart;
 						file._chunking = chunking;
@@ -175,12 +172,6 @@ package com.plupload {
 
 					loader.loadBytes(file._fileRef.data);
 				} else {
-					// Force at least 4 chunks to fake progress
-					if (chunks < 4) {
-						chunkSize = Math.ceil(file._size / 4);
-						chunks = 4;
-					}
-
 					file._multipart = multipart;
 					file._chunking = chunking;
 					file._chunk = chunk;
@@ -199,44 +190,6 @@ package com.plupload {
 
 			// Start loading local file
 			this._fileRef.load();
-
-			// Only one chunk, then do a normal upload
-			// * * This was removed since Flash is to buggy when it comes to upload requests
-			/*if (this._chunks == 1) {
-				var req:URLRequest, data:URLVariables, k:String;
-
-				// Setup request
-				req = new URLRequest(this._uploadUrl);
-				req.method = URLRequestMethod.POST;
-
-				// Setup post arguments if there are any
-				if (post_args != null) {
-					data = new URLVariables();
-
-					for (k in post_args)
-						data[k] = post_args[k];
-
-					req.data = data;
-				}
-
-				// Delegate progress event
-				this._fileRef.addEventListener(ProgressEvent.PROGRESS, function(e:ProgressEvent):void {
-					dispatchEvent(e);
-				});
-
-				// Delegate file upload complete event
-				this._fileRef.addEventListener(DataEvent.UPLOAD_COMPLETE_DATA, function(e:DataEvent):void {
-					dispatchEvent(e);
-				});
-
-				// Delegate upload IO error
-				this._fileRef.addEventListener(IOErrorEvent.IO_ERROR, function(e:Event):void {
-					dispatchEvent(e);
-				});
-
-				// Start singe upload
-				this._fileRef.upload(req, upload_field);
-			}*/
 		}
 
 		// Private methods
@@ -318,12 +271,17 @@ package com.plupload {
 
 			// Chunk size is defined then add query string params for it
 			if (this._chunking) {
-				if (url.indexOf('?') == -1)
+				if (url.indexOf('?') == -1) {
 					url += '?';
-				else
+				} else {
 					url += '&';
+				}
+				if (file._useOffsets) {
+					url += "offset=" + file._chunk * file._chunkSize + "&file_size=" + file._size;
+				} else {
+					url += "chunk=" + file._chunk + "&chunks=" + file._chunks;
+				}
 
-				url += "chunk=" + this._chunk + "&chunks=" + this._chunks;
 			}
 
 			// Setup request

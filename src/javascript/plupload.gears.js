@@ -206,7 +206,7 @@
 					req = google.gears.factory.create('beta.httprequest');
 					
 					var url = file.url || up.settings.url;
-					plupload.extend(reqArgs, up.settings.url_parameters);)
+					plupload.extend(reqArgs, up.settings.url_parameters);
 					
 					req.open('POST', plupload.buildUrl(url, reqArgs));
 					

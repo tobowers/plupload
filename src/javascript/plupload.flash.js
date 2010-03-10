@@ -160,6 +160,7 @@
 						multipart : settings.multipart,
 						multipart_params : settings.multipart_params,
 						use_offsets: settings.use_offsets,
+						request_headers: settings.request_headers,
 						format : /\.(jpg|jpeg)$/i.test(file.name) ? 'jpg' : 'png'
 					});
 				});

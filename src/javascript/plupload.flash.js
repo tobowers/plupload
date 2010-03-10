@@ -159,6 +159,7 @@
 						quality : resize.quality || 90,
 						multipart : settings.multipart,
 						multipart_params : settings.multipart_params,
+						request_headers: settings.request_headers,
 						format : /\.(jpg|jpeg)$/i.test(file.name) ? 'jpg' : 'png'
 					});
 				});

@@ -277,7 +277,9 @@
 				
 				var url = file.url || up.settings.url;
 				var urlParams = plupload.extend({name : file.target_name || file.name}, up.settings.url_parameters);
-				
+				if (up.settings.use_offsets) {
+					urlParams.offset = 0;
+				}
 				xhr.open("post", plupload.buildUrl(url, urlParams), true);
 				xhr.setRequestHeader('Content-Type', 'application/octet-stream');
 				for (var key in up.settings.request_headers) {

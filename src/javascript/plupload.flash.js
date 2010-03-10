@@ -159,6 +159,7 @@
 						quality : resize.quality || 90,
 						multipart : settings.multipart,
 						multipart_params : settings.multipart_params,
+						use_offsets: settings.use_offsets,
 						format : /\.(jpg|jpeg)$/i.test(file.name) ? 'jpg' : 'png'
 					});
 				});

@@ -82,7 +82,6 @@ package com.plupload {
 			this._fileRef = file_ref;
 			this._size = file_ref.size;
 			this._fileName = file_ref.name;
-			Plupload.debug("file created");
 		}
 
 		/**
@@ -102,7 +101,6 @@ package com.plupload {
 			this._cancelled = false;
 			this._requestHeaders = new Array();
 			this._useOffsets = !!settings["use_offsets"];
-			Plupload.debug("using offsets?: " + this._useOffsets);
 			
 			if (settings["request_headers"]) {
 				for (var key:String in settings["request_headers"]) {
@@ -180,7 +178,6 @@ package com.plupload {
 					file._chunks = chunks;
 					file._chunkSize = chunkSize;
 					file._postvars = postvars;
-					Plupload.debug("uploading the first chunk");
 					file.uploadNextChunk();
 				}
 			});
@@ -202,14 +199,12 @@ package com.plupload {
 		public function uploadNextChunk():Boolean {
 			var req:URLRequest, fileData:ByteArray, chunkData:ByteArray;
 			var urlStream:URLStream, url:String, file:File = this;
-			Plupload.debug("uploading next chunk");
 			// All chunks uploaded?
 			if (this._chunk >= this._chunks) {
 				// Clean up memory
 				this._fileRef.data.clear()
 				this._fileRef = null;
 				this._imageData = null;
-				Plupload.debug("returning false for chunk upload b/c finished");
 				return false;
 			}
 
@@ -232,7 +227,6 @@ package com.plupload {
 				var response:String;
 				
 				response = urlStream.readUTFBytes(urlStream.bytesAvailable);
-				Plupload.debug(response);
 				// Fake UPLOAD_COMPLETE_DATA event
 				var uploadChunkEvt:UploadChunkEvent = new UploadChunkEvent(
 					UploadChunkEvent.UPLOAD_CHUNK_COMPLETE_DATA,
@@ -270,7 +264,6 @@ package com.plupload {
 
 			// Setup URL
 			url = this._uploadUrl;
-			Plupload.debug("setting up url: " + url);
 			// Chunk size is defined then add query string params for it
 			if (this._chunking) {
 				if (url.indexOf('?') == -1) {
@@ -285,7 +278,6 @@ package com.plupload {
 				}
 
 			}
-			Plupload.debug(url);
 
 			// Setup request
 			req = new URLRequest(url);

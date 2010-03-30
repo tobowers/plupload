@@ -77,6 +77,7 @@ package com.plupload {
 			this._fileRef = file_ref;
 			this._size = file_ref.size;
 			this._fileName = file_ref.name;
+			Plupload.debug("File created: " + this._fileName);
 		}
 
 		/**
@@ -89,7 +90,8 @@ package com.plupload {
 		 */
 		public function upload(url:String, settings:Object):void {
 			var file:File = this;
-
+			Plupload.debug("Uploading: " + this._fileName);
+			
 			// Setup internal vars
 			this._uploadUrl = url;
 			this._cancelled = false;
@@ -97,7 +99,7 @@ package com.plupload {
 			this._currentOffset = settings["starting_offset"] || 0;
 
 			this._chunkSize = settings["chunk_size"];
-			if (!this._chunkSize || this._chunkSize == 0) {
+			if (!this._chunkSize || (this._chunkSize == 0) || (this._chunkSize > this._size)) {
 				this._chunkSize = Math.ceil(file._size / 4)
 			}
 			
@@ -136,9 +138,12 @@ package com.plupload {
 			}
 			
 			this._currentOffset = offset;
+			Plupload.debug("Offset is: " + this._currentOffset.toString());
 			
 			// All chunks uploaded?
 			if (this._currentOffset >= this._size) {
+				Plupload.debug("returning false because cO: " + this._currentOffset.toString() + " > size: " + this._size);
+				
 				// Clean up memory
 				this._fileRef.data.clear()
 				this._fileRef = null;
@@ -147,25 +152,33 @@ package com.plupload {
 
 			// Slice out a chunk
 			chunkData = new ByteArray();
+			fileData = this._fileRef.data;
 			
 			if (this._currentOffset + this._chunkSize > fileData.length) {
 				bytesToRead = fileData.length - this._currentOffset
 			} else {
 				bytesToRead = this._chunkSize;
 			}
-
-			fileData = this._fileRef.data;
-
-			fileData.readBytes(chunkData, this._currentOffset, bytesToRead);
+			
+			Plupload.debug("reading " + bytesToRead.toString() + " bytes");
+			
+			fileData.position = this._currentOffset;
+			fileData.readBytes(chunkData, 0, bytesToRead);
 
 			// Setup URL stream
 			urlStream = new URLStream();
 
 			// Wait for response and dispatch it
 			urlStream.addEventListener(Event.COMPLETE, function(e:Event):void {
-				var response:String;
+				var response:String, lastOffset:int;
+				
+				Plupload.debug("Uploaded chunk complete, firing complete events");
+				
+				lastOffset = file._currentOffset;
+				file._currentOffset += file._chunkSize;
 				
 				response = urlStream.readUTFBytes(urlStream.bytesAvailable);
+				
 				// Clean up memory
 				urlStream.close();
 				chunkData.clear();
@@ -176,7 +189,7 @@ package com.plupload {
 					false,
 					false,
 					response,
-					file._currentOffset,
+					lastOffset,
 					file._chunkSize,
 					file._size
 				);
@@ -185,9 +198,9 @@ package com.plupload {
 
 
 				// Fake progress event since Flash doesn't have a progress event for streaming data up to the server
-				var pe:ProgressEvent = new ProgressEvent(ProgressEvent.PROGRESS, false, false, file._currentOffset, file._size);
+				var pe:ProgressEvent = new ProgressEvent(ProgressEvent.PROGRESS, false, false, lastOffset, file._size);
 				dispatchEvent(pe);
-				file._currentOffset += file._chunkSize;
+				
 			});
 
 			// Delegate upload IO errors
@@ -212,12 +225,16 @@ package com.plupload {
 			}
 			url += "offset=" + this._currentOffset;
 
+			Plupload.debug("sending to: " + url);
+			
+
 			// Setup request
 			req = new URLRequest(url);
 			req.method = URLRequestMethod.POST;
 			req.requestHeaders = req.requestHeaders.concat(this._requestHeaders);
 
 			req.requestHeaders.push(new URLRequestHeader("Content-Type", "application/octet-stream"));
+			Plupload.debug("chunk data length is: " + chunkData.length.toString());
 			req.data = chunkData;
 
 			// Make request

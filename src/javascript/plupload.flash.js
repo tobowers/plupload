@@ -171,7 +171,7 @@
 
 				uploader.bind("Flash:UploadChunkComplete", function(up, info) {
 					var chunkArgs, file = up.getFile(lookup[info.id]);
-
+					console.log("chunk upload complete received");
 					chunkArgs = {
 						offset : info.offset,
 						chunkSize : info.chunkSize,
@@ -182,15 +182,20 @@
 					up.trigger('ChunkUploaded', file, chunkArgs);
 					// Last chunk then dispatch FileUploaded event
 					if (info.offset + info.chunkSize > info.fileSize) {
+						console.log("we're now finished - completing");
+						
 						file.status = plupload.DONE;
 
 						up.trigger('FileUploaded', file, {
 							response : info.text
 						});
 					} else {
+						
 						// Stop upload if file is marked as failed
 						if (file.status != plupload.FAILED) {
-							getFlashObj().uploadNextChunk(info.offset + info.chunkSize);
+							console.log("uploading the next chunk");
+							
+							getFlashObj().uploadNextChunk();
 						}
 					}
 

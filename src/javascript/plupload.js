@@ -749,19 +749,12 @@
 					if (err.file) {
 						err.file.status = plupload.FAILED;
 						calc();
-
-						// Upload next file but detach it from the error event
-						// since other custom listeners might want to stop the queue
-						window.setTimeout(function() {
-							uploadNext.call(self);
-						});
 					}
 				});
 
 				self.bind("FileUploaded", function(up, file) {
 					file.status = plupload.DONE;
 					up.trigger('UploadProgress', file);
-					uploadNext.call(self);
 				});
 
 				// Setup runtimeList
@@ -825,8 +818,6 @@
 
 					this.state = plupload.STARTED;
 					this.trigger("StateChanged");
-
-					uploadNext.call(this);
 				}
 			},
 
@@ -1132,8 +1123,7 @@
 		 * @param {plupload.Uploader} uploader Uploader instance that needs to be initialized.
 		 * @param {function} callback Callback function to execute when the runtime initializes or fails to initialize. If it succeeds an object with a parameter name success will be set to true.
 		 */
-		this.init = function(uploader, callback) {
-		};
+		this.init = function(uploader, callback) {};
 	};
 
 	/**

@@ -16,7 +16,7 @@ package com.plupload {
 	 */
 	public class UploadChunkEvent extends DataEvent {
 		// Private fields
-		private var _chunk:int, _chunks:int;
+		private var _offset:int, _chunkSize:int, _fileSize:int;
 
 		/**
 		 * Chunk complete event name.
@@ -24,17 +24,24 @@ package com.plupload {
 		public static const UPLOAD_CHUNK_COMPLETE_DATA:String = 'uploadchunk';
 
 		/**
-		 * Chunk property.
+		 * offset property.
 		 */
-		public function get chunk():int {
-			return this._chunk;
+		public function get offset():int {
+			return this._offset;
 		}
 
 		/**
-		 * Chunks property.
+		 * chunkSize property.
 		 */
-		public function get chunks():int {
-			return this._chunks;
+		public function get chunkSize():int {
+			return this._chunkSize;
+		}
+		
+		/**
+		 * size property.
+		 */
+		public function get fileSize():int {
+			return this._fileSize;
 		}
 
 		/**
@@ -47,10 +54,11 @@ package com.plupload {
 		 * @param	chunk
 		 * @param	chunks
 		 */
-		function UploadChunkEvent(type:String, bubbles:Boolean, cancelable:Boolean, data:String, chunk:int, chunks:int) {
+		function UploadChunkEvent(type:String, bubbles:Boolean, cancelable:Boolean, data:String, offset:int, chunkSize:int, fileSize:int) {
 			super(type, bubbles, cancelable, data);
-			this._chunk = chunk;
-			this._chunks = chunks;
+			this._offset = offset;
+			this._chunkSize = chunkSize;
+			this._fileSize = fileSize;
 		}
 	}
 }

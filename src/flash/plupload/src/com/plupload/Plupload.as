@@ -185,8 +185,9 @@ package com.plupload {
 					fireEvent("UploadChunkComplete", {
 						id : file.id,
 						text : e.text,
-						chunk : e.chunk,
-						chunks : e.chunks
+						offset : e.offset,
+						chunkSize : e.chunkSize,
+						fileSize : e.fileSize
 					});
 				});
 

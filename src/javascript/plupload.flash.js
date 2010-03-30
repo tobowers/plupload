@@ -62,7 +62,7 @@
 	 */
 	plupload.runtimes.Flash = plupload.addRuntime("flash", {
 		/**
-		 * Initializes the upload runtime. This method should add necessary items to the DOM and register events needed for operation. 
+		 * Initializes the upload runtime. This method should add necessary items to the DOM and register events needed for operation.
 		 *
 		 * @method init
 		 * @param {plupload.Uploader} uploader Uploader instance that needs to be initialized.
@@ -118,13 +118,13 @@
 
 			function waitLoad() {
 				// Wait for 5 sec
-				if (waitCount++ > 5000) {
+				if (waitCount++ > 25) {
 					callback({success : false});
 					return;
 				}
 
 				if (!initialized) {
-					setTimeout(waitLoad, 1);
+					setTimeout(waitLoad, 200);
 				}
 			}
 
@@ -151,17 +151,10 @@
 					var url = file.url || settings.url;
 					var urlParams = {name : file.target_name || file.name};
 					plupload.extend(urlParams, up.settings.url_parameters);
-					
+
 					getFlashObj().uploadFile(lookup[file.id], plupload.buildUrl(url, urlParams), {
 						chunk_size : settings.chunk_size,
-						width : resize.width,
-						height : resize.height,
-						quality : resize.quality || 90,
-						multipart : settings.multipart,
-						multipart_params : settings.multipart_params,
-						use_offsets: settings.use_offsets,
-						request_headers: settings.request_headers,
-						format : /\.(jpg|jpeg)$/i.test(file.name) ? 'jpg' : 'png'
+						request_headers: settings.request_headers
 					});
 				});
 
@@ -180,26 +173,29 @@
 					var chunkArgs, file = up.getFile(lookup[info.id]);
 
 					chunkArgs = {
-						chunk : info.chunk,
-						chunks : info.chunks,
+						offset : info.offset,
+						chunkSize : info.chunkSize,
+						fileSize: info.fileSize,
 						response : info.text
 					};
 
 					up.trigger('ChunkUploaded', file, chunkArgs);
-
-					// Stop upload if file is maked as failed
-					if (file.status != plupload.FAILED) {
-						getFlashObj().uploadNextChunk();
-					}
-
 					// Last chunk then dispatch FileUploaded event
-					if (info.chunk == info.chunks - 1) {
+					if (info.offset + info.chunkSize > info.fileSize) {
 						file.status = plupload.DONE;
 
 						up.trigger('FileUploaded', file, {
 							response : info.text
 						});
+					} else {
+						// Stop upload if file is marked as failed
+						if (file.status != plupload.FAILED) {
+							getFlashObj().uploadNextChunk(info.offset + info.chunkSize);
+						}
 					}
+
+
+
 				});
 
 				uploader.bind("Flash:SelectFiles", function(up, selected_files) {

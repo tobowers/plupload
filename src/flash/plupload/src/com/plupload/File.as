@@ -9,10 +9,7 @@
  */
 
 package com.plupload {
-	import flash.display.Bitmap;
-	import flash.display.BitmapData;
 	import flash.events.EventDispatcher;
-	import flash.geom.Matrix;
 	import flash.net.FileReference;
 	import flash.events.Event;
 	import flash.events.IOErrorEvent;
@@ -29,8 +26,6 @@ package com.plupload {
 	import flash.net.URLVariables;
 	import flash.utils.ByteArray;
 	import flash.external.ExternalInterface;
-	import mx.graphics.codec.JPEGEncoder;
-	import mx.graphics.codec.PNGEncoder;
 
 	/**
 	 * Container class for file references, this handles upload logic for individual files.
@@ -39,9 +34,9 @@ package com.plupload {
 		// Private fields
 		private var _fileRef:FileReference, _cancelled:Boolean;
 		private var _uploadUrl:String, _uploadPath:String;
-		private var _id:String, _fileName:String, _size:uint, _imageData:ByteArray;
-		private var _multipart:Boolean, _chunking:Boolean, _chunk:int, _chunks:int, _chunkSize:int, _postvars:Object;
-		private var _requestHeaders:Array, _useOffsets:Boolean;
+		private var _id:String, _fileName:String, _size:uint;
+		private var _chunkSize:int;
+		private var _requestHeaders:Array, _currentOffset:int;
 
 		/**
 		 * Id property of file.
@@ -93,93 +88,28 @@ package com.plupload {
 		 * @param settings Settings object.
 		 */
 		public function upload(url:String, settings:Object):void {
-			var file:File = this, width:int, height:int, quality:int, multipart:Boolean, chunking:Boolean;
-			var chunk:int, chunks:int, chunkSize:int, postvars:Object;
+			var file:File = this;
 
 			// Setup internal vars
 			this._uploadUrl = url;
 			this._cancelled = false;
 			this._requestHeaders = new Array();
-			this._useOffsets = !!settings["use_offsets"];
+			this._currentOffset = settings["starting_offset"] || 0;
+
+			this._chunkSize = settings["chunk_size"];
+			if (!this._chunkSize || this._chunkSize == 0) {
+				this._chunkSize = Math.ceil(file._size / 4)
+			}
 			
 			if (settings["request_headers"]) {
 				for (var key:String in settings["request_headers"]) {
 					this._requestHeaders.push(new URLRequestHeader(key, settings["request_headers"][key]));
 				}
 			}
-			
-			
-			// Handle image resizing settings
-			if (settings["width"] || settings["height"]) {
-				width = settings["width"];
-				height = settings["height"];
-				quality = settings["quality"];
-			}
-
-			multipart = new Boolean(settings["multipart"]);
-			chunkSize = settings["chunk_size"];
-			chunking = chunkSize > 0;
-			postvars = settings["multipart_params"];
-			chunk = 0;
-			chunks = Math.ceil(this._fileRef.size / chunkSize);
-
-			// If chunking is disabled then upload file in one huge chunk
-			// Force at least 4 chunks to fake progress
-			if (!chunking) {
-				chunking = true;
-				chunkSize = Math.ceil(file._size / 4);
-				chunks = 4;
-			}
 
 			// When file is loaded start uploading
 			this._fileRef.addEventListener(Event.COMPLETE, function(e:Event):void {
-				var loader:flash.display.Loader;
-
-				// Load JPEG file and scale it down if needed
-				if (/\.(jpeg|jpg|png)$/i.test(file._fileName) && (width || height)) {
-					loader = new flash.display.Loader();
-					loader.contentLoaderInfo.addEventListener(Event.COMPLETE, function(e:Event):void {
-						var loadedBitmapData:BitmapData = Bitmap(e.target.content).bitmapData;
-						var matrix:Matrix = new Matrix();
-
-						// Setup scale matrix
-						matrix.scale(width / loadedBitmapData.width, height / loadedBitmapData.height);
-
-						// Draw loaded bitmap into scaled down bitmap
-						var outputBitmapData:BitmapData = new BitmapData(width, height);
-						outputBitmapData.draw(loadedBitmapData, matrix);
-
-						// Encode bitmap as JPEG
-						if (settings["format"] == "jpg")
-							file._imageData = new JPEGEncoder(quality).encode(outputBitmapData);
-						else
-							file._imageData = new PNGEncoder().encode(outputBitmapData);
-
-						// Update file size and buffer position
-						file._imageData.position = 0;
-						file._size = file._imageData.length;
-
-						// Start uploading the scaled down image
-						file._multipart = multipart;
-						file._chunking = chunking;
-						file._chunk = chunk;
-						file._chunks = chunks;
-						file._chunkSize = chunkSize;
-						file._postvars = postvars;
-
-						file.uploadNextChunk();
-					});
-
-					loader.loadBytes(file._fileRef.data);
-				} else {
-					file._multipart = multipart;
-					file._chunking = chunking;
-					file._chunk = chunk;
-					file._chunks = chunks;
-					file._chunkSize = chunkSize;
-					file._postvars = postvars;
-					file.uploadNextChunk();
-				}
+				file.uploadNextChunk(this._currentOffset);
 			});
 
 			// File load IO error
@@ -196,28 +126,37 @@ package com.plupload {
 		/**
 		 * Uploads the next chunk or terminates the upload loop if all chunks are done.
 		 */
-		public function uploadNextChunk():Boolean {
+		public function uploadNextChunk(offset:int = -1):Boolean {
 			var req:URLRequest, fileData:ByteArray, chunkData:ByteArray;
 			var urlStream:URLStream, url:String, file:File = this;
+			var bytesToRead:int;
+			
+			if (offset == -1) {
+				offset = this._currentOffset;
+			}
+			
+			this._currentOffset = offset;
+			
 			// All chunks uploaded?
-			if (this._chunk >= this._chunks) {
+			if (this._currentOffset >= this._size) {
 				// Clean up memory
 				this._fileRef.data.clear()
 				this._fileRef = null;
-				this._imageData = null;
 				return false;
 			}
 
 			// Slice out a chunk
 			chunkData = new ByteArray();
+			
+			if (this._currentOffset + this._chunkSize > fileData.length) {
+				bytesToRead = fileData.length - this._currentOffset
+			} else {
+				bytesToRead = this._chunkSize;
+			}
 
-			// Use image data if it exists, will exist if the image was resized
-			if (this._imageData != null)
-				fileData = this._imageData;
-			else
-				fileData = this._fileRef.data;
+			fileData = this._fileRef.data;
 
-			fileData.readBytes(chunkData, 0, fileData.position + this._chunkSize > fileData.length ? fileData.length - fileData.position : this._chunkSize);
+			fileData.readBytes(chunkData, this._currentOffset, bytesToRead);
 
 			// Setup URL stream
 			urlStream = new URLStream();
@@ -227,95 +166,59 @@ package com.plupload {
 				var response:String;
 				
 				response = urlStream.readUTFBytes(urlStream.bytesAvailable);
+				// Clean up memory
+				urlStream.close();
+				chunkData.clear();
+				
 				// Fake UPLOAD_COMPLETE_DATA event
 				var uploadChunkEvt:UploadChunkEvent = new UploadChunkEvent(
 					UploadChunkEvent.UPLOAD_CHUNK_COMPLETE_DATA,
 					false,
 					false,
 					response,
-					file._chunk,
-					file._chunks
+					file._currentOffset,
+					file._chunkSize,
+					file._size
 				);
 
 				dispatchEvent(uploadChunkEvt);
 
+
 				// Fake progress event since Flash doesn't have a progress event for streaming data up to the server
-				var pe:ProgressEvent = new ProgressEvent(ProgressEvent.PROGRESS, false, false, fileData.position, file._size);
+				var pe:ProgressEvent = new ProgressEvent(ProgressEvent.PROGRESS, false, false, file._currentOffset, file._size);
 				dispatchEvent(pe);
-
-				// Clean up memory
-				urlStream.close();
-				chunkData.clear();
-
-				file._chunk++;
+				file._currentOffset += file._chunkSize;
 			});
 
 			// Delegate upload IO errors
 			urlStream.addEventListener(IOErrorEvent.IO_ERROR, function(e:IOErrorEvent):void {
-				file._chunk = file._chunks; // Cancel upload of all remaining chunks
+				file._currentOffset = file._size; // Cancel upload of all remaining chunks
 				dispatchEvent(e);
 			});
 
-			// Delegate secuirty errors
+			// Delegate security errors
 			urlStream.addEventListener(SecurityErrorEvent.SECURITY_ERROR, function(e:SecurityErrorEvent):void {
-				file._chunk = file._chunks; // Cancel upload of all remaining chunks
+				file._currentOffset = file._size; // Cancel upload of all remaining chunks
 				dispatchEvent(e);
 			});
 
 			// Setup URL
 			url = this._uploadUrl;
-			// Chunk size is defined then add query string params for it
-			if (this._chunking) {
-				if (url.indexOf('?') == -1) {
-					url += '?';
-				} else {
-					url += '&';
-				}
-				if (file._useOffsets) {
-					url += "offset=" + file._chunk * file._chunkSize + "&file_size=" + file._size;
-				} else {
-					url += "chunk=" + file._chunk + "&chunks=" + file._chunks;
-				}
-
+			
+			if (url.indexOf('?') == -1) {
+				url += '?';
+			} else {
+				url += '&';
 			}
+			url += "offset=" + this._currentOffset;
 
 			// Setup request
 			req = new URLRequest(url);
 			req.method = URLRequestMethod.POST;
 			req.requestHeaders = req.requestHeaders.concat(this._requestHeaders);
-			// Build multipart request
-			if (this._multipart) {
-				var boundary:String = '----pluploadboundary' + new Date().getTime(),
-					dashdash:String = '--', crlf:String = '\r\n', multipartBlob: ByteArray = new ByteArray();
 
-				req.requestHeaders.push(new URLRequestHeader("Content-Type", 'multipart/form-data; boundary=' + boundary));
-
-				// Append mutlipart parameters
-				for (var name:String in this._postvars) {
-					multipartBlob.writeUTFBytes(
-						dashdash + boundary + crlf +
-						'Content-Disposition: form-data; name="' + name + '"' + crlf + crlf + 
-						this._postvars[name] + crlf
-					);
-				}
-
-				// Add file header
-				multipartBlob.writeUTFBytes(
-					dashdash + boundary + crlf +
-					'Content-Disposition: form-data; name="file"; filename="' + this._fileName + '"' + crlf +
-					'Content-Type: application/octet-stream' + crlf + crlf
-				);
-
-				// Add file data
-				multipartBlob.writeBytes(chunkData, 0, chunkData.length);
-
-				// Add file footer
-				multipartBlob.writeUTFBytes(crlf + dashdash + boundary + dashdash + crlf);
-				req.data = multipartBlob;
-			} else {
-				req.requestHeaders.push(new URLRequestHeader("Content-Type", "application/octet-stream"));
-				req.data = chunkData;
-			}
+			req.requestHeaders.push(new URLRequestHeader("Content-Type", "application/octet-stream"));
+			req.data = chunkData;
 
 			// Make request
 			urlStream.load(req);

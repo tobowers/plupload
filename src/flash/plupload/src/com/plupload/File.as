@@ -99,7 +99,7 @@ package com.plupload {
 			this._currentOffset = settings["starting_offset"] || 0;
 
 			this._chunkSize = settings["chunk_size"];
-			if (!this._chunkSize || (this._chunkSize == 0) || (this._chunkSize > this._size)) {
+			if (!this._chunkSize || (this._chunkSize == 0) || (this._chunkSize >= this._size)) {
 				this._chunkSize = Math.ceil(file._size / 4)
 			}
 			

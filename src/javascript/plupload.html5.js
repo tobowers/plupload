@@ -12,47 +12,6 @@
 /*global plupload:false, File:false, window:false, atob:false */
 
 (function(plupload) {
-	function scaleImage(image_data_url, max_width, max_height, mime, callback) {
-		var canvas, context, img, data, scale;
-
-		// Setup canvas and context
-		canvas = document.createElement("canvas");
-		canvas.style.display = 'none';
-		document.body.appendChild(canvas);
-		context = canvas.getContext('2d');
-
-		// Load image
-		img = new Image();
-		img.onload = function() {
-			var width, height, percentage;
-
-			scale = Math.min(max_width / img.width, max_height / img.height);
-
-			if (scale < 1) {
-				width = Math.round(img.width * scale);
-				height = Math.round(img.height * scale);
-			} else {
-				width = img.width;
-				height = img.height;
-			}
-
-			// Scale image and canvas
-			canvas.width = width;
-			canvas.height = height;
-			context.drawImage(img, 0, 0, width, height);
-
-			// Remove data prefix information and grab the base64 encoded data and decode it
-			data = canvas.toDataURL(mime);
-			data = data.substring(data.indexOf('base64,') + 7);
-			data = atob(data);
-
-			// Remove canvas and execute callback with decoded image data
-			canvas.parentNode.removeChild(canvas);
-			callback({success : true, data : data});
-		};
-
-		img.src = image_data_url;
-	}
 
 	/**
 	 * HMTL5 implementation. This runtime supports these features: dragdrop, jpgresize, pngresize.
@@ -204,37 +163,11 @@
 			});
 
 			uploader.bind("UploadFile", function(up, file) {
-				var xhr = new XMLHttpRequest(), upload = xhr.upload, resize = up.settings.resize, nativeFile, multipartSize = 0;
+				var xhr = new XMLHttpRequest(), upload = xhr.upload, nativeFile;
 
 				// Sends the binary blob to server and multipart encodes it if needed this code will
 				// only be executed on Gecko since it's currently the only browser that supports direct file access
 				function sendBinaryBlob(blob) {
-					var boundary = '----pluploadboundary' + plupload.guid(), dashdash = '--', crlf = '\r\n', multipartBlob = '';
-
-					// Build multipart request
-					if (up.settings.multipart) {
-						xhr.setRequestHeader('Content-Type', 'multipart/form-data; boundary=' + boundary);
-
-						// Append mutlipart parameters
-						plupload.each(up.settings.multipart_params, function(value, name) {
-							multipartBlob += dashdash + boundary + crlf +
-								'Content-Disposition: form-data; name="' + name + '"' + crlf + crlf;
-
-							multipartBlob += value + crlf;
-						});
-
-						// Build RFC2388 blob
-						multipartBlob += dashdash + boundary + crlf +
-							'Content-Disposition: form-data; name="file"; filename="' + file.name + '"' + crlf +
-							'Content-Type: application/octet-stream' + crlf + crlf +
-							blob + crlf +
-							dashdash + boundary + dashdash + crlf;
-
-						multipartSize = multipartBlob.length - blob.length;
-						blob = multipartBlob;
-					}
-
-					// Send blob or multipart blob depending on config
 					xhr.sendAsBinary(blob);
 				}
 
@@ -246,7 +179,7 @@
 				// Do we have upload progress support
 				if (upload) {
 					upload.onprogress = function(e) {
-						file.loaded = e.loaded - multipartSize;
+						file.loaded = e.loaded;
 						up.trigger('UploadProgress', file);
 					};
 				}
@@ -277,9 +210,7 @@
 				
 				var url = file.url || up.settings.url;
 				var urlParams = plupload.extend({name : file.target_name || file.name}, up.settings.url_parameters);
-				if (up.settings.use_offsets) {
-					urlParams.offset = 0;
-				}
+				urlParams.offset = 0;
 				xhr.open("post", plupload.buildUrl(url, urlParams), true);
 				xhr.setRequestHeader('Content-Type', 'application/octet-stream');
 				for (var key in up.settings.request_headers) {
@@ -290,21 +221,7 @@
 				nativeFile = html5files[file.id]; 
 
 				if (xhr.sendAsBinary) {
-					// Resize image if it's a supported format and resize is enabled
-					if (resize && /\.(png|jpg|jpeg)$/i.test(file.name)) {
-						scaleImage(nativeFile.getAsDataURL(), resize.width, resize.height, /\.png$/i.test(file.name) ? 'image/png' : 'image/jpeg', function(res) {
-							// If it was scaled send the scaled image if it failed then
-							// send the raw image and let the server do the scaling
-							if (res.success) {
-								file.size = res.data.length;
-								sendBinaryBlob(res.data);
-							} else {
-								sendBinaryBlob(nativeFile.getAsBinary());
-							}
-						});
-					} else {
-						sendBinaryBlob(nativeFile.getAsBinary());
-					}
+					sendBinaryBlob(nativeFile.getAsBinary());
 				} else {
 					xhr.send(nativeFile);
 				}
@@ -315,9 +232,7 @@
 
 			uploader.features = {
 				// Detect drag/drop file support by sniffing, will try to find a better way
-				dragdrop : window.mozInnerScreenX !== undefined,
-				jpgresize : dataAccessSupport,
-				pngresize : dataAccessSupport
+				dragdrop : window.mozInnerScreenX !== undefined
 			};
 
 			callback({success : true});

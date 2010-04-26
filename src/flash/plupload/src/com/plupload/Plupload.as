@@ -44,7 +44,6 @@ package com.plupload {
 		private var fileRefList:FileReferenceList;
 		private var files:Dictionary;
 		private var idCounter:int = 0;
-		private var currentFile:File;
 		private var id:String;
 		private var fileFilters:Array;
 		private var multipleFiles:Boolean;
@@ -114,7 +113,7 @@ package com.plupload {
 			ExternalInterface.addCallback('clearQueue', this.clearFiles);
 			ExternalInterface.addCallback('setFileFilters', this.setFileFilters);
 			ExternalInterface.addCallback('uploadNextChunk', this.uploadNextChunk);
-
+			
 			this.fireEvent("Init");
 		}
 
@@ -264,7 +263,6 @@ package com.plupload {
 			var file:File = this.files[id] as File;
 
 			if (file) {
-				this.currentFile = file;
 				file.upload(url, settings);
 			}
 		}
@@ -274,9 +272,11 @@ package com.plupload {
 		 * 
 		 * @return true/false if there is chunks left to upload.
 		 */
-		private function uploadNextChunk():Boolean {
-			if (this.currentFile) {
-				return this.currentFile.uploadNextChunk();
+		private function uploadNextChunk(id:String, offset:int = -1):Boolean {
+			var file:File = this.files[id] as File;
+			
+			if (file) {
+				return file.uploadNextChunk(offset);
 			}
 
 			return false;

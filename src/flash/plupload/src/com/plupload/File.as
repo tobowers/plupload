@@ -133,11 +133,10 @@ package com.plupload {
 			var urlStream:URLStream, url:String, file:File = this;
 			var bytesToRead:int;
 			
-			if (offset == -1) {
-				offset = this._currentOffset;
+			if (offset != -1) {
+				this._currentOffset = offset;
 			}
 			
-			this._currentOffset = offset;
 			Plupload.debug("Offset is: " + this._currentOffset.toString());
 			
 			// All chunks uploaded?
@@ -205,13 +204,13 @@ package com.plupload {
 
 			// Delegate upload IO errors
 			urlStream.addEventListener(IOErrorEvent.IO_ERROR, function(e:IOErrorEvent):void {
-				file._currentOffset = file._size; // Cancel upload of all remaining chunks
+				//file._currentOffset = file._size; // Cancel upload of all remaining chunks
 				dispatchEvent(e);
 			});
 
 			// Delegate security errors
 			urlStream.addEventListener(SecurityErrorEvent.SECURITY_ERROR, function(e:SecurityErrorEvent):void {
-				file._currentOffset = file._size; // Cancel upload of all remaining chunks
+				//file._currentOffset = file._size; // Cancel upload of all remaining chunks
 				dispatchEvent(e);
 			});
 

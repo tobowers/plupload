@@ -137,7 +137,7 @@ package com.plupload {
 
 			function processFile(file:File):void {
 				// Add progress listener
-				file.addEventListener(ProgressEvent.PROGRESS, function(e:ProgressEvent):void {
+/*				file.addEventListener(ProgressEvent.PROGRESS, function(e:ProgressEvent):void {
 					var file:File = e.target as File;
 
 					fireEvent("UploadProcess", {
@@ -145,7 +145,7 @@ package com.plupload {
 						loaded : e.bytesLoaded,
 						size : e.bytesTotal
 					});
-				});
+				});*/
 
 				// Add error listener
 				file.addEventListener(IOErrorEvent.IO_ERROR, function(e:IOErrorEvent):void {
@@ -166,7 +166,7 @@ package com.plupload {
 						message : e.text
 					});
 				});
-
+/*
 				// Add response listener
 				file.addEventListener(DataEvent.UPLOAD_COMPLETE_DATA, function(e:DataEvent):void {
 					var file:File = e.target as File;
@@ -175,7 +175,7 @@ package com.plupload {
 						id : file.id,
 						text : e.text
 					});
-				});
+				});*/
 
 				// Add chunk response listener
 				file.addEventListener(UploadChunkEvent.UPLOAD_CHUNK_COMPLETE_DATA, function(e:UploadChunkEvent):void {
@@ -199,9 +199,9 @@ package com.plupload {
 			if (this.multipleFiles) {
 				for (var i:Number = 0; i < this.fileRefList.fileList.length; i++)
 					processFile(new File("file_" + (this.idCounter++), this.fileRefList.fileList[i]));
-			} else
+			} else {
 				processFile(new File("file_" + (this.idCounter++), this.fileRef));
-
+			}
 			this.fireEvent("SelectFiles", selectedFiles);
 		}
 
@@ -277,6 +277,12 @@ package com.plupload {
 			
 			if (file) {
 				return file.uploadNextChunk(offset);
+			} else {
+				Plupload.debug("No File was found with id: " + id);
+				fireEvent("IOError", {
+					id : id,
+					message : "no file found with id"
+				});
 			}
 
 			return false;
@@ -328,7 +334,7 @@ package com.plupload {
 		 * @param msg Message to output to firebug.
 		 */
 		public static function debug(msg:String):void {
-			ExternalInterface.call("console.log", msg);
+			ExternalInterface.call("MBX.Logger.log", msg);
 		}
 	}
 }

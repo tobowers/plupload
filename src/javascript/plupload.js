@@ -559,10 +559,7 @@
 	 * @param {Object} settings Initialization settings, to be used by the uploader instance and runtimes.
 	 */
 	plupload.Uploader = function(settings) {
-		var events = {}, total, files = [], fileIndex, startTime;
-
-		// Inital total state
-		total = new plupload.QueueProgress();
+		var events = {}, files = [], fileIndex, startTime;
 
 		// Default settings
 		settings = plupload.extend({
@@ -574,30 +571,6 @@
 			use_offsets: false,
 			filters : []
 		}, settings);
-
-		function calc() {
-			var i;
-
-			// Reset stats
-			total.reset();
-
-			// Check status, size, loaded etc on all files
-			for (i = 0; i < files.length; i++) {
-				total.size += files[i].size;
-				total.loaded += files[i].loaded;
-
-				if (files[i].status == plupload.DONE) {
-					total.uploaded++;
-				} else if (files[i].status == plupload.FAILED) {
-					total.failed++;
-				} else {
-					total.queued++;
-				}
-			}
-
-			total.percent = total.size > 0 ? Math.ceil(total.loaded / total.size * 100) : 0;
-			total.bytesPerSec = Math.ceil(total.loaded / ((+new Date() - startTime || 1) / 1000.0));
-		}
 
 		// Add public methods
 		plupload.extend(this, {
@@ -636,14 +609,6 @@
 			 * @type Object
 			 */
 			settings : settings,
-
-			/**
-			 * Total progess information. How many files has been uploaded, total percent etc.
-			 *
-			 * @property total
-			 * @type plupload.QueueProgress
-			 */
-			total : total,
 
 			/**
 			 * Unique id for the Uploader instance.
@@ -709,23 +674,19 @@
 					}
 
 					file.percent = file.size > 0 ? Math.ceil(file.loaded / file.size * 100) : 0;
-					calc();
 				});
 
 				self.bind('StateChanged', function(up) {
 					if (up.state == plupload.STARTED) {
 						// Get start time to calculate bps
-						startTime = (+new Date());
+						startTime = (new Date());
 					}
 				});
-
-				self.bind('QueueChanged', calc);
 
 				self.bind("Error", function(up, err) {
 					// Set failed status if an error occured on a file
 					if (err.file) {
 						err.file.status = plupload.FAILED;
-						calc();
 					}
 				});
 
@@ -835,6 +796,7 @@
 			 */
 			removeFile : function(file) {
 				var i;
+				file.cancelled = true;
 
 				for (i = files.length - 1; i >= 0; i--) {
 					if (files[i].id === file.id) {
@@ -1101,87 +1063,6 @@
 		 * @param {function} callback Callback function to execute when the runtime initializes or fails to initialize. If it succeeds an object with a parameter name success will be set to true.
 		 */
 		this.init = function(uploader, callback) {};
-	};
-
-	/**
-	 * Runtime class gets implemented by each upload runtime.
-	 *
-	 * @class plupload.QueueProgress
-	 */
-
-	/**
-	 * Constructs a queue progress.
-	 *
-	 * @constructor
-	 * @method QueueProgress
-	 */
-	 plupload.QueueProgress = function() {
-		var self = this; // Setup alias for self to reduce code size when it's compressed
-
-		/**
-		 * Total queue file size.
-		 *
-		 * @property size
-		 * @type Number
-		 */
-		self.size = 0;
-
-		/**
-		 * Total bytes uploaded.
-		 *
-		 * @property loaded
-		 * @type Number
-		 */
-		self.loaded = 0;
-
-		/**
-		 * Number of files uploaded.
-		 *
-		 * @property uploaded
-		 * @type Number
-		 */
-		self.uploaded = 0;
-
-		/**
-		 * Number of files failed to upload.
-		 *
-		 * @property failed
-		 * @type Number
-		 */
-		self.failed = 0;
-
-		/**
-		 * Number of files yet to be uploaded.
-		 *
-		 * @property queued
-		 * @type Number
-		 */
-		self.queued = 0;
-
-		/**
-		 * Total percent of the uploaded bytes.
-		 *
-		 * @property percent
-		 * @type Number
-		 */
-		self.percent = 0;
-
-		/**
-		 * Bytes uploaded per second.
-		 *
-		 * @property bytesPerSec
-		 * @type Number
-		 */
-		self.bytesPerSec = 0;
-
-		/**
-		 * Resets the progress to it's initial values.
-		 *
-		 * @method reset
-		 */
-		self.reset = function() {
-			self.size = self.loaded = self.uploaded = self.failed = self.queued = self.percent = self.bytesPerSec = 0;
-		};
 	};
 
 	// Create runtimes namespace

@@ -159,18 +159,10 @@
 				});
 				
 				uploader.bind("ResumeFile", function (up, file, offset) {
+					file.loaded = offset;
+					file.status = plupload.UPLOADING;
+					up.trigger('UploadProgress', file);
 					getFlashObj().uploadNextChunk(lookup[file.id], offset);
-				});
-
-				uploader.bind("Flash:UploadProcess", function(up, flash_file) {
-					var file = up.getFile(lookup[flash_file.id]);
-
-					if (file.status != plupload.FAILED) {
-						file.loaded = flash_file.loaded;
-						file.size = flash_file.size;
-
-						up.trigger('UploadProgress', file);
-					}
 				});
 
 				uploader.bind("Flash:UploadChunkComplete", function(up, info) {
@@ -183,6 +175,8 @@
 					};
 
 					up.trigger('ChunkUploaded', file, chunkArgs);
+					file.loaded = info.offset + info.chunkSize;
+					up.trigger('UploadProgress', file);
 					// Last chunk then dispatch FileUploaded event
 					if (info.offset + info.chunkSize >= info.fileSize) {						
 						file.status = plupload.DONE;
@@ -192,7 +186,7 @@
 					} else {
 						
 						// Stop upload if file is marked as failed
-						if (file.status != plupload.FAILED) {							
+						if (file.status != plupload.FAILED && !file.cancelled) {							
 							getFlashObj().uploadNextChunk(info.id);
 						}
 					}

@@ -334,7 +334,7 @@ package com.plupload {
 		 * @param msg Message to output to firebug.
 		 */
 		public static function debug(msg:String):void {
-			ExternalInterface.call("MBX.Logger.log", msg);
+			//ExternalInterface.call("MBX.Logger.log", msg);
 		}
 	}
 }

@@ -189,7 +189,7 @@ package com.plupload {
 					false,
 					response,
 					lastOffset,
-					file._chunkSize,
+					bytesToRead,
 					file._size
 				);
 
